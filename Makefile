@@ -1,10 +1,10 @@
-INCLUDE_PATHS = -I/usr/local/include
-LIBRARY_PATHS = -L/usr/local/lib 
+INCLUDE_PATHS = -I/usr/include
+LIBRARY_PATHS = -L/usr/lib 
 COMPILER_FLAGS = -std=gnu++11 -Wall -Wpedantic
 LINKER_FLAGS = -levent
 
 OBJS = main.cpp
-CC = g++
+CC = clang++
 
 OBJ_NAME = bin/Mercury.out
 

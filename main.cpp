@@ -1,5 +1,6 @@
 //STL headers
 #include <iostream>
+#include <cstring>
 
 //Libevent headers
 #include <event2/event.h>
@@ -65,7 +66,7 @@ int main(void){
 	
 	//Set up socket address information
 	sockaddr_in si_me;
-	memset((char *) &si_me, 0, sizeof(si_me));
+	std::memset((char *) &si_me, 0, sizeof(si_me));
 	
 	si_me.sin_family = AF_INET;
 	si_me.sin_port = htons(UDPPORT);
