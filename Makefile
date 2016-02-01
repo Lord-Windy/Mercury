@@ -1,6 +1,15 @@
-INCLUDE_PATHS = -I/usr/include
-LIBRARY_PATHS = -L/usr/lib 
+ifeq ($(OS), Darwin)
+
+	INCLUDE_PATHS = -I/usr/local/include
+	LIBRARY_PATHS = -L/usr/local/lib
+else
+
+	INCLUDE_PATHS = -I/usr/include
+	LIBRARY_PATHS = -L/usr/lib
+endif
+
 COMPILER_FLAGS = -std=gnu++11 -Wall -Wpedantic
+C_COMPILER_FLAGS = -std=gnu11
 LINKER_FLAGS = -levent
 
 OBJS = main.cpp
@@ -11,3 +20,4 @@ OBJ_NAME = bin/Mercury.out
 #This is the target that compiles our executable
 all : $(OBJS)
 	$(CC) $(OBJS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) $(COMPILER_FLAGS) $(LINKER_FLAGS) -o $(OBJ_NAME)
+

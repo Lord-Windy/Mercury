@@ -33,12 +33,17 @@
 //than a thrift request will be made first to get that information.
 
 //First, defining type of message
-#define DEBUG			 0x00
-#define HELLOWORLD 0x01
+#define DEBUG				0x00
+#define HELLOWORLD	0x01
+#define FILEBROWSER	0x02
+//reserve 0x03-0x06 to FILEBROWSER
 
 //Second, defining the message
 //0x01 or HelloWorld
 #define SENDHELLO 0x00
+
+//0x02 FILEBROWSER
+#define FB_RETURNDIRECTORY
 
 //Initialise and removal things
 event* init(event_base*, int);
@@ -106,6 +111,3 @@ void end(event_base* eb, int socket, event *e){
 	event_base_free(eb);
 	close(socket);
 }
-
-
-

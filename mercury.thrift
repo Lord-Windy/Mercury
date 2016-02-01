@@ -14,5 +14,7 @@ struct Message {
 service Mercury {
 	void ping(),
 	void HelloWorld(1:Message message), //Sends hello in data
+	void FileDirectory(1: Message message),
 } 
+
 
