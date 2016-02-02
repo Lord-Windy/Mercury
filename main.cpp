@@ -15,7 +15,7 @@
 #include <unistd.h>
 
 //Database Headers
-
+#include <libpq-fe.h>
 //Thrift headers
 
 //Socket defines
@@ -49,30 +49,30 @@
 event* init(event_base*, int);
 void end(event_base*, int, event*);
 
-//Information from the Vesta clients. 
+//Information from the Vesta clients.
 void vestaCommunication_cb(evutil_socket_t, short, void *);
 
 int main(void){
 
 	//Insert startup for the Unqlite Database.
-	
+
 	//Remove unnecessary crap from the Unqlite Database. In case the shutdown was poor.
-	
+
 	//@TODO Find out if I need to put Unqlite inside of a thread or if it does it own thing
 
 	//Insert code here to create the thread for the Thrift portion. 1000% must be thread.
 	//If we create a new process we cannot share file descriptors.
-		
+
 	//Start the UDP socket
 	int udpSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (udpSocket == -1){
 		exit(-1);
 	}
-	
+
 	//Set up socket address information
 	sockaddr_in si_me;
 	std::memset((char *) &si_me, 0, sizeof(si_me));
-	
+
 	si_me.sin_family = AF_INET;
 	si_me.sin_port = htons(UDPPORT);
 	si_me.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -82,7 +82,7 @@ int main(void){
 		exit(-2);
 	}
 
-	//Start the Libevent for the event bases. 
+	//Start the Libevent for the event bases.
 	event_base* eb = NULL;
 	event* e = init(eb, udpSocket);
 	//Start the looping
@@ -92,7 +92,7 @@ int main(void){
 	return 0;
 }
 
-//All communication between 
+//All communication between
 void vestaCommunication_cb(evutil_socket_t s, short d, void* p){
 
 }
