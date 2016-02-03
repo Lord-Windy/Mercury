@@ -16,6 +16,12 @@
 
 //Database Headers
 #include <libpq-fe.h>
+
+//Database globals for Libevent (who is only one thread)
+//Only located in main.cpp scope for libevent
+
+PGconn *conn;
+
 //Thrift headers
 
 //Socket defines
@@ -49,16 +55,40 @@
 event* init(event_base*, int);
 void end(event_base*, int, event*);
 
+
 //Information from the Vesta clients.
 void vestaCommunication_cb(evutil_socket_t, short, void *);
 
 int main(void){
 
-	//Insert startup for the Unqlite Database.
+	//Insert startup for the Postgre Database.
+	conn = PQconnectdb("user=mercury password=windy dbname=mercury");
 
-	//Remove unnecessary crap from the Unqlite Database. In case the shutdown was poor.
+  if (PQstatus(conn) == CONNECTION_BAD) {
+    fprintf(stderr, "Connection to database failed: %s\n",
+            PQerrorMessage(conn));
+    exit(-3);
+  }
 
-	//@TODO Find out if I need to put Unqlite inside of a thread or if it does it own thing
+	//Remove unnecessary crap from the Postgre Database. In case the shutdown was poor.
+	//We don't want the old one. I could very well be wrong, but I'm sure Delan
+	//or Tom will say yes/no on this
+	PGresult *res = PQexec(conn, "DROP TABLE IF EXISTS Connections");
+
+	if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+    exit(-4);
+  }
+
+	//insert Postgre connections table
+	res = PQexec(conn, "CREATE TABLE Connections(vid INTEGER PRIMARY KEY," \
+							"addr INET, port INT)");
+							//vid = vesta client id, addr and port are the return info
+							//when I get better at this database, i'll sanitise port to be
+							//only valid addresses. Until then, we will have unlimited range
+
+	if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+    exit(-5);
+  }
 
 	//Insert code here to create the thread for the Thrift portion. 1000% must be thread.
 	//If we create a new process we cannot share file descriptors.
@@ -85,8 +115,10 @@ int main(void){
 	//Start the Libevent for the event bases.
 	event_base* eb = NULL;
 	event* e = init(eb, udpSocket);
+
 	//Start the looping
-	event_base_dispatch(eb);
+	//event_base_dispatch(eb);
+	printf("Got here\n");
 	//Kill and free everything
 	end(eb, udpSocket, e);
 	return 0;
