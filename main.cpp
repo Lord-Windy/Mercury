@@ -1,9 +1,7 @@
 //STL headers
 #include <iostream>
+#include <sstream>
 #include <cstring>
-
-//Libevent headers
-#include <event2/event.h>
 
 //Socket headers + others that are needed
 #include <arpa/inet.h>
@@ -30,6 +28,8 @@ PGconn *conn;
 #define UDPPORT 32512
 #define THRPORT 32513 //thrift port
 
+#define BUFLEN 512
+
 //UDP Message defines
 //Broken into two bytes, giving a total of 65k different options. Not that we need that
 //many, this is more about giving say 1 for file browsers and then 2 for current
@@ -39,9 +39,12 @@ PGconn *conn;
 //than a thrift request will be made first to get that information.
 
 //First, defining type of message
-#define DEBUG				0x00
-#define HELLOWORLD	0x01
-#define FILEBROWSER	0x02
+#define DEBUG 			0x00 //0x01 as well
+#define HELLOWORLD	0x02
+#define FILEBROWSER	0x03
+//others
+#define CONNECTION  0xFE //IE, Vesta connecting to Mercury
+
 //reserve 0x03-0x06 to FILEBROWSER
 
 //Second, defining the message
@@ -51,18 +54,17 @@ PGconn *conn;
 //0x02 FILEBROWSER
 #define FB_RETURNDIRECTORY
 
-//Initialise and removal things
-event* init(event_base*, int);
-void end(event_base*, int, event*);
-
+using namespace std;
 
 //Information from the Vesta clients.
-void vestaCommunication_cb(evutil_socket_t, short, void *);
+void vestaCommunication_cb(int);
 
 int main(void){
 
 	//Insert startup for the Postgre Database.
-	conn = PQconnectdb("user=mercury password=windy dbname=mercury");
+	//the string was a test, and it worked nicely!
+	string s = "user=mercury password=windy dbname=mercury";
+	conn = PQconnectdb(s.c_str());
 
   if (PQstatus(conn) == CONNECTION_BAD) {
     fprintf(stderr, "Connection to database failed: %s\n",
@@ -112,34 +114,72 @@ int main(void){
 		exit(-2);
 	}
 
-	//Start the Libevent for the event bases.
-	event_base* eb = NULL;
-	event* e = init(eb, udpSocket);
-
 	//Start the looping
 	//event_base_dispatch(eb);
 	printf("Got here\n");
+	vestaCommunication_cb(udpSocket);
 	//Kill and free everything
-	end(eb, udpSocket, e);
+	//don't really have to anymore. OS will wipe out everything
 	return 0;
 }
 
+
+template <typename T>
+std::string tostring(const T& t)
+{
+    std::ostringstream ss;
+    ss << t;
+    return ss.str();
+}
+
 //All communication between
-void vestaCommunication_cb(evutil_socket_t s, short d, void* p){
+void vestaCommunication_cb(int socket){
+	//create the return socket info
+	sockaddr si_other;
+	socklen_t slen = sizeof(sockaddr);
+	std::memset((char *) &si_other, 0, sizeof(si_other));
 
-}
+	char buf[BUFLEN];
+	for (;;){
+		if (recvfrom(socket, buf, BUFLEN, 0,  &si_other, &slen) ==-1){
+			printf("Broken");
+			exit(-3);
+		}
+		uint8_t type = buf[0]; //the first part
+		uint8_t message = buf[1]; //second address
 
-//Init the event stuff
-event* init(event_base* eb, int socket){
-	eb = event_base_new();
-	event* e = event_new(eb, socket, EV_READ|EV_PERSIST, &vestaCommunication_cb, 0);
-	event_add(e,NULL);
-	return e;
-}
+		/* TODO
+		place buf 2 to 9 into a union with uint8_t and uint64_t and just use that
+		This will give us the easiest way to denetwork it.
 
-//Again, only a function because we may need to change how the event base dies
-void end(event_base* eb, int socket, event *e){
-	event_free(e);
-	event_base_free(eb);
-	close(socket);
+		Will be completed when I have the Vesta client up, no point otherwise
+		*/
+
+		uint64_t vid = 0x01; //vesta id 1. Will be replaced with a better one.
+												 //vesta ids are unique, so if it reconnects under new
+												 //details we will overwrite
+		//At the moment we will kill anything not a connection
+		if (type != CONNECTION){
+			exit(-10);
+		}
+
+		sockaddr_in* details = (sockaddr_in*) &si_other;
+
+		//TODO check to see if vid is in the user database. For now assume that it is
+		//SELECT EXISTS FROM ventus_users WHERE vid = our_vid_we_made;
+
+		string s = "INSERT INTO Connections VALUES(" + tostring(vid) + ", " +
+			inet_ntoa(details->sin_addr) + ", " + tostring(ntohs(details->sin_port)) + ")";
+
+		PGresult *res = PQexec(conn, s.c_str());
+
+		if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+			printf("unable to write");
+		  exit(-4);
+		}
+
+		//clear out buffer and si_other
+		std::memset((char *) &si_other, 0, sizeof(si_other));
+		std::memset((char *) &buf, 0, sizeof(char)*BUFLEN);
+	}
 }
