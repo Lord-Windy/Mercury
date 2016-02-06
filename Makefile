@@ -4,13 +4,13 @@ ifeq ($(OS), Darwin)
 	LIBRARY_PATHS = -L/usr/local/lib
 else
 
-	INCLUDE_PATHS = -I/usr/include
-	LIBRARY_PATHS = -L/usr/lib
+	INCLUDE_PATHS = -I/usr/include -I/usr/pgsql-9.4/include
+	LIBRARY_PATHS = -L/usr/lib -L/usr/pgsql-9.4/lib
 endif
 
 COMPILER_FLAGS = -std=gnu++11 -Wall -Wpedantic
 C_COMPILER_FLAGS = -std=gnu11
-LINKER_FLAGS = -levent
+LINKER_FLAGS = -levent -lpq
 
 OBJS = main.cpp
 CC = clang++

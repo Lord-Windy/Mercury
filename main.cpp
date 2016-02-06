@@ -28,8 +28,6 @@ PGconn *conn;
 #define UDPPORT 32512
 #define THRPORT 32513 //thrift port
 
-#define BUFLEN 512
-
 //UDP Message defines
 //Broken into two bytes, giving a total of 65k different options. Not that we need that
 //many, this is more about giving say 1 for file browsers and then 2 for current
@@ -43,7 +41,7 @@ PGconn *conn;
 #define HELLOWORLD	0x02
 #define FILEBROWSER	0x03
 //others
-#define CONNECTION  0xFE //IE, Vesta connecting to Mercury
+#define CONNECTION  0xF0 //IE, Vesta connecting to Mercury
 
 //reserve 0x03-0x06 to FILEBROWSER
 
@@ -148,6 +146,8 @@ void vestaCommunication_cb(int socket){
 		uint8_t type = buf[0]; //the first part
 		uint8_t message = buf[1]; //second address
 
+		printf("type is: %x and message is %x \n", type, message);
+
 		/* TODO
 		place buf 2 to 9 into a union with uint8_t and uint64_t and just use that
 		This will give us the easiest way to denetwork it.
@@ -168,15 +168,17 @@ void vestaCommunication_cb(int socket){
 		//TODO check to see if vid is in the user database. For now assume that it is
 		//SELECT EXISTS FROM ventus_users WHERE vid = our_vid_we_made;
 
-		string s = "INSERT INTO Connections VALUES(" + tostring(vid) + ", " +
-			inet_ntoa(details->sin_addr) + ", " + tostring(ntohs(details->sin_port)) + ")";
-
+		string s = "INSERT INTO Connections VALUES(" + tostring(vid) + ", '" +
+			inet_ntoa(details->sin_addr) + "', " + tostring(ntohs(details->sin_port)) + ")";
+		printf("%s\n", s.c_str());
 		PGresult *res = PQexec(conn, s.c_str());
 
 		if (PQresultStatus(res) != PGRES_COMMAND_OK) {
 			printf("unable to write");
 		  exit(-4);
 		}
+
+		//return saying OK
 
 		//clear out buffer and si_other
 		std::memset((char *) &si_other, 0, sizeof(si_other));
